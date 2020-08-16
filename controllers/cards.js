@@ -5,20 +5,18 @@ const cards = path.join(__dirname, '..', 'data', 'cards.json');
 
 const getCards = (req, res) => {
   getFile(cards)
-    .then(data => {
+    .then((data) => {
       res
         .status(200)
-        .send(JSON.parse(data))
+        .send(JSON.parse(data));
     })
-    .catch(error => {
+    .catch((error) => {
       res
         .status(500)
-        .send({
-          message: `Ошибка тут как тут ${error}`
-        })
-    })
-}
+        .send({ message: `Ошибка тут как тут ${error}` });
+    });
+};
 
 module.exports = {
-  getCards
-}
+  getCards,
+};
