@@ -1,38 +1,78 @@
-const path = require('path');
-const { getFile } = require('../helpers');
+const User = require('../models/user');
+const BadRequestError = require('../errors/BadRequestError');
+const NotFoundError = require('../errors/NotFoundError');
 
-const users = path.join(__dirname, '..', 'data', 'users.json');
-
-const getAllUsers = (req, res) => {
-  getFile(users)
-    .then((data) => res
-      .status(200)
-      .send(JSON.parse(data)))
-    .catch((error) => res
-      .status(500)
-      .send({ message: `An error has occurred ${error}` }));
+const getAllUsers = (req, res, next) => {
+  User.find({})
+    .then((users) => res.send({ data: users }))
+    .catch(next);
 };
 
-const getUser = (req, res) => {
-  getFile(users)
-    .then((data) => {
-      // Находим текущего пользователя
-      const currentUser = JSON.parse((data)).find((user) => user._id === req.params.id);
-      if (!currentUser) {
-        res
-          .status(404)
-          .send({ message: 'Нет пользователя с таким ID' });
-      }
-      res
-        .status(200)
-        .send(currentUser);
+const getUser = (req, res, next) => {
+  User.findById(req.params._id)
+    .orFail()
+    .catch(() => {
+      throw new NotFoundError({ message: 'Такого пользователя нет' });
     })
-    .catch((error) => res
-      .status(500)
-      .send({ message: `An error has occurred ${error}` }));
+    .then((user) => res.send({ data: user }))
+    .catch(next);
+};
+
+const createUser = (req, res, next) => {
+  const { name, about, avatar } = req.body;
+
+  User.create({ name, about, avatar })
+    .catch((err) => {
+      throw new BadRequestError({ message: `Некорректные данные: ${err.message}` });
+    })
+    .then((user) => res.send({ data: user }))
+    .catch(next);
+};
+
+const updateUser = (req, res, next) => {
+  const { name, about, avatar } = req.body;
+
+  User.findByIdAndUpdate(req.user._id,
+    { name, about, avatar },
+    {
+      new: true,
+      runValidators: true,
+    })
+    .orFail(() => new NotFoundError({ message: 'Такого пользователя нет' }))
+    .catch((err) => {
+      if (err instanceof NotFoundError) {
+        throw err;
+      }
+      throw new BadRequestError({ message: `incorrect data: ${err.message}` });
+    })
+    .then((user) => res.send({ data: user }))
+    .catch(next);
+};
+
+const updateAvatar = (req, res, next) => {
+  const { avatar } = req.body;
+
+  User.findByIdAndUpdate(req.user._id,
+    { avatar },
+    {
+      new: true,
+      runValidators: true,
+    })
+    .orFail(() => new NotFoundError({ message: 'Такого пользователя нет' }))
+    .catch((err) => {
+      if (err instanceof NotFoundError) {
+        throw err;
+      }
+      throw new BadRequestError({ message: `incorrect data: ${err.message}` });
+    })
+    .then((newAvatar) => res.send({ data: newAvatar }))
+    .catch(next);
 };
 
 module.exports = {
   getAllUsers,
   getUser,
+  createUser,
+  updateUser,
+  updateAvatar,
 };
